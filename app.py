@@ -40,6 +40,18 @@ PRECIO_INVERSOR_USD = 355
 IVA = 0.10                        # 10% IVA en Paraguay
 TIPO_CAMBIO = 6000                # 1 USD = 6.000 Gs
 
+# Costos adicionales de instalación (prorrateados por panel, basado en 6 paneles)
+HERRAJES_6_PANELES_GS = 1_500_000   # Gs para 6 paneles
+CABLES_LLAVES_6_PANELES_GS = 600_000  # Gs para 6 paneles
+HERRAJES_POR_PANEL_GS = HERRAJES_6_PANELES_GS / 6
+CABLES_LLAVES_POR_PANEL_GS = CABLES_LLAVES_6_PANELES_GS / 6
+
+# Costos fijos de instalación
+MANO_OBRA_POR_PANEL_GS = 300_000     # Gs por panel
+COSTO_PROYECTO_ANDE_GS = 1_500_000   # Gs (costo fijo)
+COSTO_PUESTA_TIERRA_GS = 500_000     # Gs (costo fijo)
+COSTO_MEDIDOR_ANDE_GS = 800_000      # Gs (costo fijo)
+
 # Potencias típicas de electrodomésticos (W)
 POTENCIA_HELADERA = {"Chica": 120, "Mediana": 180, "Grande": 250}
 POTENCIA_LAMPARA_LED = 9          # W promedio
@@ -436,6 +448,10 @@ if total_kwh_dia > 0:
     precio_panel_gs = precio_panel_usd_iva * TIPO_CAMBIO
     costo_paneles_total = num_paneles * precio_panel_gs
 
+    costo_herrajes_total = num_paneles * HERRAJES_POR_PANEL_GS
+    costo_cables_llaves_total = num_paneles * CABLES_LLAVES_POR_PANEL_GS
+    costo_mano_obra_total = num_paneles * MANO_OBRA_POR_PANEL_GS
+
     cols = st.columns(3)
     with cols[0]:
         st.metric("Precio unitario (con IVA)", formato_gs(precio_panel_gs))
@@ -443,6 +459,17 @@ if total_kwh_dia > 0:
         st.metric("Cantidad", f"{num_paneles} paneles")
     with cols[2]:
         st.metric("Inversión en paneles", formato_gs(costo_paneles_total))
+
+    st.markdown("#### 🔩 Materiales y Mano de Obra de Instalación")
+    cols2 = st.columns(4)
+    with cols2[0]:
+        st.metric("Herrajes por panel", formato_gs(HERRAJES_POR_PANEL_GS), help="Estructuras, rieles, tornillería")
+    with cols2[1]:
+        st.metric("Cables y llaves por panel", formato_gs(CABLES_LLAVES_POR_PANEL_GS), help="Cableado DC/AC, llaves termomagnéticas, protecciones")
+    with cols2[2]:
+        st.metric("Mano de obra por panel", formato_gs(MANO_OBRA_POR_PANEL_GS), help="Instalación y montaje")
+    with cols2[3]:
+        st.metric("Total instalación adicional", formato_gs(costo_herrajes_total + costo_cables_llaves_total + costo_mano_obra_total))
 
     # --- Inversor ---
     st.markdown("#### 🔌 Inversor")
@@ -490,13 +517,25 @@ if total_kwh_dia > 0:
         costo_baterias_total = 0
         capacidad_total_kwh = 0
 
+    # --- Costos fijos de instalación ---
+    st.markdown("#### 🏗️ Costos Fijos de Instalación")
+    cols_fijos = st.columns(4)
+    with cols_fijos[0]:
+        st.metric("Proyecto ANDE", formato_gs(COSTO_PROYECTO_ANDE_GS), help="Presentación del proyecto a la ANDE")
+    with cols_fijos[1]:
+        st.metric("Puesta a tierra", formato_gs(COSTO_PUESTA_TIERRA_GS), help="Sistema de puesta a tierra")
+    with cols_fijos[2]:
+        st.metric("Medidor ANDE", formato_gs(COSTO_MEDIDOR_ANDE_GS), help="Medidor bidireccional para vertimiento")
+    with cols_fijos[3]:
+        st.metric("Total costos fijos", formato_gs(COSTO_PROYECTO_ANDE_GS + COSTO_PUESTA_TIERRA_GS + COSTO_MEDIDOR_ANDE_GS))
+
     # =============================================================================
     # SECCIÓN 6: CÁLCULO ECONÓMICO
     # =============================================================================
     st.markdown("---")
     st.markdown('<div class="section-title">💵 6. Análisis Económico</div>', unsafe_allow_html=True)
 
-    inversion_total = costo_paneles_total + precio_inv_gs + costo_baterias_total
+    inversion_total = costo_paneles_total + precio_inv_gs + costo_baterias_total + costo_herrajes_total + costo_cables_llaves_total + costo_mano_obra_total + COSTO_PROYECTO_ANDE_GS + COSTO_PUESTA_TIERRA_GS + COSTO_MEDIDOR_ANDE_GS
     ahorro_mensual = min(energia_generada_mes, total_kwh_mes) * costo_kwh
 
     if ahorro_mensual > 0:
@@ -511,7 +550,13 @@ if total_kwh_dia > 0:
 
     data_inversion = [
         ["Paneles Solares (600W)", f"{num_paneles} unidades", formato_gs(costo_paneles_total)],
+        ["Herrajes de sujeción", f"{num_paneles} unidades", formato_gs(costo_herrajes_total)],
+        ["Cables y llaves termomagnéticas", f"{num_paneles} unidades", formato_gs(costo_cables_llaves_total)],
+        ["Mano de obra de instalación", f"{num_paneles} paneles", formato_gs(costo_mano_obra_total)],
         ["Inversor", "1 unidad (5.000 W)", formato_gs(precio_inv_gs)],
+        ["Proyecto ANDE", "1 trámite", formato_gs(COSTO_PROYECTO_ANDE_GS)],
+        ["Puesta a tierra", "1 sistema", formato_gs(COSTO_PUESTA_TIERRA_GS)],
+        ["Medidor ANDE", "1 unidad", formato_gs(COSTO_MEDIDOR_ANDE_GS)],
     ]
     if con_baterias:
         data_inversion.append(["Baterías", f"{num_baterias} unidades ({BATERIA_VOLT}V {BATERIA_AH}Ah)", formato_gs(costo_baterias_total)])
